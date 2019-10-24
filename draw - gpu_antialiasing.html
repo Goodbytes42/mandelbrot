@@ -1,0 +1,132 @@
+<!DocType html>
+<meta charset="utf-8">
+<head>
+</head>
+<body onload="initialize()">
+<canvas id="myCanvas" width="800" height="800" style="border:1px solid #000000;" onkeypress="handleInput(event)">
+</canvas> 
+
+</div>
+
+<script src="dist/gpu-browser.js"></script>
+<script>
+    
+var z = {
+	real: 0,
+	unreal: 0
+};
+var xshift=-0.5;
+var yshift=-1;
+var scale=2;
+
+var canvas = document.getElementById("myCanvas");
+const gpu = new GPU({'canvas':canvas});
+
+var keymap = {32: false, 37: false, 38: false, 39: false, 40: false, 107: false, 109: false};
+
+function initialize()
+{
+	window.addEventListener('keydown', function (e) {
+		if (e.keyCode in keymap) {
+			keymap[e.keyCode] = true;
+			console.log("shifting");
+		}
+	})
+	window.addEventListener('keyup', function (e) {
+		if (e.keyCode in keymap) {
+			keymap[e.keyCode] = false;
+		}
+	})
+	interval = setInterval(handleInput, 50);
+}
+
+function handleInput() {
+	if (keymap[37]) {
+		xshift-=0.125*scale;
+		render();
+	}
+	if (keymap[38]) {
+		yshift+=0.125*scale;
+		render();
+	}
+	if (keymap[39]) {
+		xshift+=0.125*scale;
+		render();
+	}
+	if (keymap[40]) {
+		yshift-=0.125*scale;
+		render();
+	}
+	if (keymap[107]) {
+		xshift+=0.166666*scale;
+		yshift+=0.166666*scale;
+		scale*=0.666666;
+		render();
+	}
+	if (keymap[109]) {
+		xshift-=0.166666*scale;
+		yshift-=0.166666*scale;
+		scale*=1.333333;
+		render();
+	}
+	if (keymap[32]) {
+		render();
+	}
+	
+}
+
+function getColor(xp, yp) {
+	let zreal=0;
+	let zunreal=0;
+	let real=0;
+	let unreal=0;
+	let colorAdjust=0;
+	for (let i = 0; i<256; i++) {
+		real=zreal*zreal-zunreal*zunreal;
+		unreal=2*zreal*zunreal;
+		zreal=real+xp;
+		zunreal=unreal+yp;
+		
+		if (Math.sqrt(zreal*zreal+zunreal*zunreal) >=2) {
+			colorAdjust=(i*10)%255;
+			return [colorAdjust/255, colorAdjust/255, 200/255];
+		}
+		if (i==255) {
+			return [0,0,0];
+		}
+	}
+	return [0,0,0];
+}
+
+const drawMandelbrot = gpu.createKernel(function(dimensions, scale, xshift, yshift) {
+	let i=0;
+	let rgb = [0,0,0];// = getColor(xp,yp);
+	for (let a = -1; a <= 1; a++) {
+		for (let b = -1; b <= 1; b++) {
+			let xp=((this.thread.x+a)/dimensions*scale+xshift);
+			let yp=((this.thread.y+b)/dimensions*scale+yshift);
+			let colorSample = getColor(xp,yp);
+			rgb[0] += colorSample[0]/9.0;
+			rgb[1] += colorSample[1]/9.0;
+			rgb[2] += colorSample[2]/9.0;
+		}
+	}
+	let xp=((this.thread.x)/dimensions*scale+xshift);
+	let yp=((this.thread.y)/dimensions*scale+yshift);
+	let colorSample = getColor(xp,yp);
+	rgb[0] = (rgb[0] + colorSample[0])/2.0;
+	rgb[1] = (rgb[1] + colorSample[1])/2.0;
+	rgb[2] = (rgb[2] + colorSample[2])/2.0;
+	
+	
+	this.color(rgb[0],rgb[1],rgb[2]);
+	//this.color(0,(this.thread.x%255)/255,(this.thread.y%255)/255);
+	
+}, { output: [canvas.width, canvas.height], graphical: true, functions: [getColor] });
+
+function render() {
+	drawMandelbrot(canvas.height, scale, xshift, yshift);
+}
+
+</script>
+</body>

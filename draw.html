@@ -1,0 +1,121 @@
+<!DocType html>
+<head>
+</head>
+<body onload="initialize()">
+
+<canvas id="myCanvas" width="2400" height="1600" style="border:1px solid #000000;" onkeypress="handleInput(event)">
+</canvas> 
+
+</div>
+
+<script>
+var z = {
+	real: 0,
+	unreal: 0
+};
+var xshift=-0.5;
+var yshift=-1;
+var scale=2;
+
+
+var canvas = document.getElementById("myCanvas");
+var context = canvas.getContext("2d");
+var keymap = {32: false, 37: false, 38: false, 39: false, 40: false, 107: false, 109: false};
+var coloradjust=0;
+
+function initialize()
+{
+	window.addEventListener('keydown', function (e) {
+		if (e.keyCode in keymap) {
+			keymap[e.keyCode] = true;
+			console.log("shifting");
+		}
+	})
+	window.addEventListener('keyup', function (e) {
+		if (e.keyCode in keymap) {
+			keymap[e.keyCode] = false;
+		}
+	})
+	interval = setInterval(handleInput, 20);
+	drawMandelbrot();
+}
+
+function handleInput() {
+	if (keymap[37]) {
+		xshift-=0.25*scale;
+		drawMandelbrot();
+	}
+	if (keymap[38]) {
+		yshift-=0.25*scale;
+		drawMandelbrot();
+	}
+	if (keymap[39]) {
+		xshift+=0.25*scale;
+		drawMandelbrot();
+	}
+	if (keymap[40]) {
+		yshift+=0.25*scale;
+		drawMandelbrot();
+	}
+	if (keymap[107]) {
+		scale*=0.66;
+		drawMandelbrot();
+	}
+	if (keymap[109]) {
+		
+		scale*=1.33;
+		drawMandelbrot();
+	}
+	/*if (keymap[32]) {
+		entitylist.push(new laser(player.x, player.y, 0, -3));
+		firecooldown=50;
+	}*/
+	
+}
+
+async function drawMandelbrot() {
+
+	for (x=1; x<canvas.width; x++) {
+		for (y=1; y<canvas.height; y++) {
+			z.real=0;
+			z.unreal=0;
+			var xp=(x/canvas.height*scale+xshift);
+			var yp=(y/canvas.height*scale+yshift);
+			var real;
+			var unreal;
+
+			
+			//console.log("doing " + x + "," + y);
+			//console.log("doing " + xp + "," + yp);
+			for (i=0; i<256; i++) {
+				 
+				real=z.real*z.real-z.unreal*z.unreal;
+				unreal=2*z.real*z.unreal;
+				z.real=real+xp;
+				z.unreal=unreal+yp;
+				
+				if (Math.sqrt(z.real*z.real+z.unreal*z.unreal) >=2) {
+					colorAdjust=(i*10)%255;
+					context.fillStyle = "rgb("+colorAdjust+","+colorAdjust+",200)";
+					context.fillRect(x,y,1,1);
+					//console.log(Math.sqrt(z.real*z.real+z.unreal*z.unreal));
+					//console.log("x:"+x+",y:"+y+", i:" +i);
+					break;
+				}
+				if (i==255) {
+					context.fillStyle = "rgb(0,0,0)";
+					context.fillRect(x,y,1,1);
+				}
+				//await sleep(1);
+			}
+		}
+	}
+}
+
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+</script>
+</body>
